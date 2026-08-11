@@ -1,7 +1,7 @@
 import { Pane } from 'tweakpane'
 import './style.css'
 import * as THREE from 'three'
-import { OrbitControls } from 'three/examples/jsm/Addons.js'
+import fragmentShader from './Shaders/fragment.glsl'
 
 const pane = new Pane({
   title: 'options'
@@ -16,10 +16,7 @@ const sizes = {
 }
 const scene = new THREE.Scene()
 scene.background = new THREE.Color(0x000000)
-const camera = new THREE.PerspectiveCamera(35, sizes.width / sizes.height, .01, 100)
-camera.position.z = 10
-const controls = new OrbitControls(camera, $canvas)
-controls.enableDamping = true
+const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
 
 const toneMappingList = {
   None: THREE.NoToneMapping,
@@ -52,13 +49,18 @@ renderer.render(scene, camera)
  * Start
  */
 
-const box = new THREE.Mesh(
-  new THREE.BoxGeometry(),
-  new THREE.MeshBasicMaterial()
+const plane = new THREE.Mesh(
+  new THREE.PlaneGeometry(2, 2),
+  new THREE.ShaderMaterial({
+    fragmentShader: fragmentShader,
+    uniforms: {
+      uTime: new THREE.Uniform(0)
+    }
+  })
 )
 
 
-scene.add(box)
+scene.add(plane)
 
 /**
  * End
@@ -74,10 +76,15 @@ window.addEventListener('resize', () => {
   renderer.setSize(sizes.width, sizes.height)
 })
 
+const timer = new THREE.Timer()
+timer.connect(window.document)
+
 const tick = () => {
 
   requestAnimationFrame(tick)
-  controls.update()
+  timer.update()
+
+  plane.material.uniforms.uTime.value = timer.getElapsed()
 
   renderer.render(scene, camera)
 }

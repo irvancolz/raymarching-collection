@@ -6,10 +6,10 @@ float remapClamped(float value, float inMin, float inMax, float outMin, float ou
   return mix(outMin, outMax, t);
 }
 
-float smoothmin(float a, float b, float s) {
+float smin(float a, float b, float s) {
   return (a + b - sqrt(pow(a - b, 2.) + s)) / 2.
 }
 
-float smoothmax(float a, float b, float s) {
+float smax(float a, float b, float s) {
   return (a + b + sqrt(pow(a - b, 2.) + s)) / 2.
 }
