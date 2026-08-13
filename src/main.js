@@ -36,6 +36,8 @@ const renderer = new THREE.WebGLRenderer({
   antialias: true,
 })
 renderer.setSize(sizes.width, sizes.height)
+renderer.setPixelRatio(sizes.dpr)
+
 renderer.toneMapping = toneMappingList[toneMapping.value]
 pane.addBinding(toneMapping, 'value', {
   label: 'tonemapping',
@@ -54,7 +56,8 @@ const plane = new THREE.Mesh(
   new THREE.ShaderMaterial({
     fragmentShader: fragmentShader,
     uniforms: {
-      uTime: new THREE.Uniform(0)
+      uTime: new THREE.Uniform(0),
+      uResolution: new THREE.Uniform(new THREE.Vector2(sizes.width * sizes.dpr, sizes.height * sizes.dpr))
     }
   })
 )
@@ -69,10 +72,14 @@ scene.add(plane)
 window.addEventListener('resize', () => {
   sizes.width = window.innerWidth
   sizes.height = window.innerHeight
+  sizes.dpr = Math.min(2, window.devicePixelRatio)
 
   camera.aspect = sizes.width / sizes.height
   camera.updateProjectionMatrix()
 
+  plane.material.uniforms.uResolution.value.copy(new THREE.Vector2(sizes.width * sizes.dpr, sizes.height * sizes.dpr))
+
+  renderer.setPixelRatio(sizes.dpr)
   renderer.setSize(sizes.width, sizes.height)
 })
 
