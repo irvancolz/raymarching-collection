@@ -60,19 +60,33 @@ renderer.render(scene, camera)
  */
 const lights = {
   ambient: {
-    color: '#ff0000',
-    intensity: .1
+    color: '#f9b6ff',
+    intensity: .7
   },
   diffuse: [
     {
-      color: '#0000ff',
+      color: '#00a7ff',
       intensity: .9
     }, {
-      color: '#ffffff',
+      color: '#ffc400',
       intensity: .3
     },
   ]
 }
+const bgGradient = [
+  {
+    color: '#ffc400',
+    stop: .0
+  },
+  {
+    color: '#f9b6ff',
+    stop: .54
+  },
+  {
+    color: '#00a7ff',
+    stop: .7
+  },
+]
 const plane = new THREE.Mesh(
   new THREE.PlaneGeometry(2, 2),
   new THREE.ShaderMaterial({
@@ -92,7 +106,12 @@ const plane = new THREE.Mesh(
       diffuseLights: new THREE.Uniform(lights.diffuse.map(light => ({
         color: new THREE.Color(light.color),
         intensity: light.intensity
-      })))
+      }))),
+
+      backgroundGradients: new THREE.Uniform(bgGradient.map(col => ({
+        color: new THREE.Color(col.color),
+        stop: col.stop
+      }))),
     },
     defines: {
       NUM_DIFFUSE_LIGHTS: 2,
@@ -141,6 +160,22 @@ lights.diffuse.forEach((light, i) => {
   })
   f.addBinding(plane.material.uniforms.diffuseLights.value[i], 'intensity', { min: .01, max: 1, step: .01 })
 })
+
+const bgDebug = pane.addFolder({ title: 'background' })
+bgGradient.forEach((color, i) => {
+  const f = bgDebug.addFolder({ title: `color - ${i + 1}` })
+  f.addBinding(color, 'color').on('change', () => {
+    plane.material.uniforms.backgroundGradients.value[i].color.set(color.color)
+  })
+  f.addBinding(plane.material.uniforms.backgroundGradients.value[i], 'stop', {
+    min: i == 0 ? 0.01 : bgGradient[i - 1].stop,
+    max: i >= bgGradient.length - 1 ? 1 : bgGradient[i + 1].stop,
+    step: .01
+  }).on('change', (e) => {
+    if (e.last) pane.refresh()
+  })
+})
+
 
 /**
  * End

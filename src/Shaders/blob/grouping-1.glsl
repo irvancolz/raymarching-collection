@@ -3,6 +3,11 @@ struct LightsUniform {
   float intensity;
 };
 
+struct GradientColor {
+  vec3 color;
+  float stop;
+};
+
 uniform float uTime;
 uniform float uCursorRadius;
 uniform float uCursorMix;
@@ -15,6 +20,8 @@ uniform LightsUniform ambientLights;
 uniform LightsUniform[NUM_DIFFUSE_LIGHTS] diffuseLights;
 #endif
 
+uniform GradientColor[3] backgroundGradients;
+
 #define PI 3.141592653589793
 #define MAX_STEPS 100
 #define MAX_DIST 100.0
@@ -23,6 +30,7 @@ uniform LightsUniform[NUM_DIFFUSE_LIGHTS] diffuseLights;
 #include ../math/common.glsl
 #include ../sdf/3d.glsl
 #include ../lights.glsl
+#include ../noise/perlin.glsl
 
 vec3 branches(float i, int c) {
   float a = i / float(c) * (PI * 2.);
@@ -38,8 +46,8 @@ float scene(vec3 p) {
 
   float aspect = uResolution.x / uResolution.y;
   vec3 cursor = vec3(uCursor, 0.);
-  // cursor.xy *= 1. + aspect;
-  // cursor.xy *= uResolution / min(uResolution.x, uResolution.y);
+  cursor.xy *= 1. + aspect;
+  cursor.xy *= uResolution / min(uResolution.x, uResolution.y);
 
   vec3 p2 = p - cursor;
   float s2 = sdSphere(p2, uCursorRadius);
@@ -62,12 +70,12 @@ float scene(vec3 p) {
   }
 
   vec3 p3 = p;
-  p3 = rotate(p3, speed * .3, vec3(0., 1., 0.), vec3(0.));
+  p3 = rotate(p3, uTime * .3, vec3(.1, 1., 0.), vec3(0.));
   // p3 *= 1. / 4.;
   float freq = 8.;
   float ampl = .03;
-  // p3.x += sin(p3.y * freq + uTime * 4.) * ampl;
-  // p3.x += cos(p3.y * freq + uTime * 4.) * ampl;
+  p3.x += sin(p3.y * freq + uTime * 4.) * ampl;
+  p3.x += cos(p3.y * freq + uTime * 4.) * ampl;
   float s3 = sdOctahedron(p3, uStickRadius);
   d = smin(s2, s3, uCursorMix);
   // d = s3;
@@ -126,7 +134,7 @@ vec3 applyLights(vec3 p, vec3 normal, vec3 viewDir) {
   float shadows = softShadows(p, lightDirection, 0.1, 5.0, 64.0);
 
   light += diffuse(diffuseLights[0].color, diffuseLights[0].intensity, normal, lightDirection, viewDirection);
-  light += diffuse(diffuseLights[1].color, diffuseLights[1].intensity, normal, lightDirection * -1., viewDirection);
+  light += diffuse(diffuseLights[1].color, diffuseLights[1].intensity, normal, lightDirection * vec3(-1., -1., 1.), viewDirection);
   light += ambient(ambientLights.color, ambientLights.intensity);
 
   // light *= shadows;
@@ -146,6 +154,15 @@ void main() {
   vec3 p = ro + rd * d;
 
   vec3 color = vec3(0.0);
+  float progress = cnoise(uv + uTime * .1);
+  progress = remap(progress, -1., 1., 0., 1.);
+  float prevStop = 0.;
+  for (int i; i < 3; i++) {
+    float c = remapClamped(progress, prevStop, backgroundGradients[i].stop, 0., 1.);
+    c = smoothstep(0., 1., c);
+    prevStop = backgroundGradients[i].stop;
+    color = mix(color, backgroundGradients[i].color, c);
+  }
 
   if (d < MAX_DIST) {
     vec3 normal = getNormal(p);
