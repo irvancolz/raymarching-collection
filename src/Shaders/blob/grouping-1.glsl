@@ -39,9 +39,12 @@ vec3 branches(float i, int c) {
 
 float scene(vec3 p) {
   vec3 p1 = p;
-  p1.y += sin(uTime * .3) * .3;
-  // ps1.xz += sin((ps1.y + uTime * .2) * 30.) * .02;
-  float s1 = sdSphere(p1, 1.);
+  p1.x += 3.;
+  float freq = 8.;
+  float ampl = .03;
+  p1.x += sin(p1.y * freq + uTime * 4.) * ampl;
+  p1.x += cos(p1.y * freq + uTime * 4.) * ampl;
+  float s1 = sdCappedCylinder(p1, .3, 1.);
   float d = s1;
 
   float aspect = uResolution.x / uResolution.y;
@@ -50,35 +53,29 @@ float scene(vec3 p) {
   cursor.xy *= uResolution / min(uResolution.x, uResolution.y);
 
   vec3 p2 = p - cursor;
+  p2.x += sin(p2.y * freq + uTime * 4.) * ampl;
+  p2.x += cos(p2.y * freq + uTime * 4.) * ampl;
   float s2 = sdSphere(p2, uCursorRadius);
 
-  // d = smin(s1, s2, .02);
+  d = smin(s1, s2, uCursorMix);
 
   // small spheres rotating
   float s = .1;
   float speed = uTime;
 
-  int MC = 4;
-  for (int i = 0; i < MC; i++) {
-    vec3 pm = p;
-    vec3 om = branches(float(i), MC);
-    pm -= om;
-    pm = rotate(pm, speed * (.1 + float(i)), vec3(0., 1., 0.), om * -1. * remap(sin(speed + float(i)), -1., 1., .5, 1.));
-
-    float sm = sdSphere(pm, .5);
-    d = smin(d, sm, s);
-  }
-
   vec3 p3 = p;
+  p3.x += .5;
   p3 = rotate(p3, uTime * .3, vec3(.1, 1., 0.), vec3(0.));
-  // p3 *= 1. / 4.;
-  float freq = 8.;
-  float ampl = .03;
-  p3.x += sin(p3.y * freq + uTime * 4.) * ampl;
-  p3.x += cos(p3.y * freq + uTime * 4.) * ampl;
-  float s3 = sdOctahedron(p3, uStickRadius);
-  d = smin(s2, s3, uCursorMix);
+
+  float s3 = sdOctahedron(p3, 1.);
+  d = smin(d, s3, uCursorMix);
   // d = s3;
+
+  vec3 p4 = p + vec3(-3., 0., 0.);
+  p4 = rotate(p4, uTime, vec3(0., 1., 1.), vec3(0.));
+
+  float s4 = sdRoundBox(p4, vec3(.8), .1);
+  d = smin(d, s4, uCursorMix);
 
   return d;
 }
